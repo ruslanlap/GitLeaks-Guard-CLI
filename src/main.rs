@@ -18,12 +18,16 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Interactive setup wizard (recommended for first-time setup)
+    Init,
     /// Install gitleaks and setup pre-commit hooks
     Install {
         /// Skip gitleaks download if already installed
         #[arg(short, long)]
         skip_download: bool,
     },
+    /// Show current status and configuration
+    Status,
     /// Enable gitleaks pre-commit hook
     Enable,
     /// Disable gitleaks pre-commit hook
@@ -40,6 +44,12 @@ enum Commands {
         #[arg(short, long)]
         cleanup: bool,
     },
+    /// Update gitleaks to the latest version
+    Update {
+        /// Force reinstall even if already on latest version
+        #[arg(short, long)]
+        force: bool,
+    },
     /// Check gitleaks version
     Version,
 }
@@ -49,9 +59,15 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Commands::Init => {
+            commands::init::run().await?;
+        }
         Commands::Install { skip_download } => {
             println!("{}", "🔒 GitLeaks Guard - Installation".bold().blue());
             commands::install::run(skip_download).await?;
+        }
+        Commands::Status => {
+            commands::status::run()?;
         }
         Commands::Enable => {
             println!("{}", "✅ Enabling GitLeaks".bold().green());
@@ -64,6 +80,9 @@ async fn main() -> Result<()> {
         Commands::Scan { url, path, cleanup } => {
             println!("{}", "🕵️‍♂️ GitLeaks Scanner".bold().blue());
             commands::scan::run(url, path, cleanup).await?;
+        }
+        Commands::Update { force } => {
+            commands::update::run(force).await?;
         }
         Commands::Version => {
             commands::version::check()?;
