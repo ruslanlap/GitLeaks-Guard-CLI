@@ -1,21 +1,33 @@
 use anyhow::{Context, Result};
 use std::process::Command;
 
-/// Enable gitleaks by unsetting core.hooksPath
+/// Enable gitleaks by setting hooks.gitleaks-enable to true
 pub fn enable_gitleaks() -> Result<()> {
-    Command::new("git")
-        .args(["config", "--unset", "core.hooksPath"])
+    let output = Command::new("git")
+        .args(["config", "hooks.gitleaks-enable", "true"])
         .output()
         .context("Failed to enable gitleaks")?;
+    
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("Failed to enable gitleaks: {}", stderr);
+    }
+    
     Ok(())
 }
 
-/// Disable gitleaks by setting core.hooksPath to no-hooks
+/// Disable gitleaks by setting hooks.gitleaks-enable to false
 pub fn disable_gitleaks() -> Result<()> {
-    Command::new("git")
-        .args(["config", "core.hooksPath", "no-hooks"])
+    let output = Command::new("git")
+        .args(["config", "hooks.gitleaks-enable", "false"])
         .output()
         .context("Failed to disable gitleaks")?;
+    
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("Failed to disable gitleaks: {}", stderr);
+    }
+    
     Ok(())
 }
 
@@ -25,6 +37,11 @@ pub fn is_gitleaks_enabled() -> Result<bool> {
         .args(["config", "--bool", "hooks.gitleaks-enable"])
         .output()
         .context("Failed to check gitleaks status")?;
+
+    if !output.status.success() {
+        // Config not set, default to false
+        return Ok(false);
+    }
 
     let result = String::from_utf8_lossy(&output.stdout);
     Ok(result.trim() == "true")
