@@ -202,12 +202,6 @@ pub fn get_version() -> Result<String> {
 pub fn create_config() -> Result<()> {
     utils::print_info("Creating .gitleaks.toml configuration...");
 
-    let config_header = r#"[[rules]]
-regex = "API[_-]?KEY"
-tags = ["api-key", "token"]
-
-"#;
-
     // Download the default config from gitleaks repository
     let client = Client::new();
     let config_url = "https://raw.githubusercontent.com/gitleaks/gitleaks/master/config/gitleaks.toml";
@@ -219,11 +213,8 @@ tags = ["api-key", "token"]
 
     let default_config = response.text().context("Failed to read config")?;
 
-    // Combine configs
-    let full_config = format!("{}{}", config_header, default_config);
-
-    // Write to file
-    fs::write(".gitleaks.toml", full_config).context("Failed to write config file")?;
+    // Write config to file (using default gitleaks config which already includes all necessary rules)
+    fs::write(".gitleaks.toml", default_config).context("Failed to write config file")?;
 
     utils::print_success("Configuration file created!");
     Ok(())
