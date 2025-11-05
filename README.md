@@ -29,13 +29,17 @@ GitLeaks Guard is a modern, fast CLI tool written in Rust that automates the ins
 
 ## Features ✨
 
+- **Interactive Setup Wizard**: Step-by-step guided setup for beginners
+- **Real-time Status**: Beautiful status dashboard showing your security configuration
 - **Automated Installation**: One command to install and configure gitleaks
+- **Auto-Update**: Easy update command to keep gitleaks current
+- **Multiple Configuration Levels**: Choose from Standard, Strict, or Minimal detection
 - **Cross-Platform**: Supports Linux (x64, ARM64), macOS (x64, ARM64), and Windows (x64, ARM64)
 - **Fast & Reliable**: Written in Rust for performance and safety
 - **Easy Management**: Simple commands to enable/disable security checks
 - **Repository Scanning**: Scan any Git repository (local or remote) for secrets
 - **Pre-commit Integration**: Automatically prevents commits containing sensitive data
-- **Beautiful CLI**: Colorful output with progress indicators
+- **Beautiful CLI**: Colorful output with progress indicators and formatted tables
 
 ## Requirements 💾
 
@@ -121,6 +125,13 @@ $env:Path += ";C:\Program Files\gitleaks-guard"
 Once installed, navigate to your Git repository and run:
 
 ```bash
+# Interactive setup wizard (recommended for first-time users)
+gitleaks-guard init
+```
+
+Or use the manual installation:
+
+```bash
 # Install gitleaks and setup pre-commit hooks
 gitleaks-guard install
 ```
@@ -130,6 +141,36 @@ That's it! Your repository is now protected against accidental secret commits.
 ## Commands
 
 GitLeaks Guard provides the following commands:
+
+### `init`
+
+Interactive setup wizard - recommended for first-time users! This command walks you through the entire setup process with helpful prompts.
+
+```bash
+gitleaks-guard init
+```
+
+**Features:**
+- Checks if you're in a git repository (offers to initialize if not)
+- Installs or updates gitleaks
+- Lets you choose configuration level (Standard, Strict, Minimal, Custom)
+- Sets up pre-commit hooks
+- Runs initial security scan
+
+### `status`
+
+Show current status and configuration of GitLeaks Guard.
+
+```bash
+gitleaks-guard status
+```
+
+**Displays:**
+- Git repository status
+- Gitleaks installation and version
+- Configuration file status
+- Pre-commit hook status (enabled/disabled)
+- Recommendations for incomplete setup
 
 ### `install`
 
@@ -141,6 +182,24 @@ gitleaks-guard install
 # Skip downloading gitleaks if already installed
 gitleaks-guard install --skip-download
 ```
+
+### `update`
+
+Update gitleaks to the latest version.
+
+```bash
+gitleaks-guard update
+
+# Force reinstall even if already on latest version
+gitleaks-guard update --force
+```
+
+**Features:**
+- Checks current version
+- Fetches latest version from GitHub
+- Compares and shows version difference
+- Confirms before updating
+- Verifies successful installation
 
 ### `enable`
 
@@ -186,14 +245,45 @@ gitleaks-guard version
 
 ## Usage Examples
 
-### Initial Setup
+### Initial Setup (Recommended for Beginners)
 
 ```bash
 # Navigate to your Git repository
 cd my-project
 
-# Install and configure gitleaks
-gitleaks-guard install
+# Run interactive setup wizard
+gitleaks-guard init
+```
+
+The wizard will guide you through:
+1. Checking/initializing git repository
+2. Installing gitleaks
+3. Choosing configuration level
+4. Setting up pre-commit hooks
+5. Running initial scan
+
+### Check Your Security Status
+
+```bash
+# See current configuration and status
+gitleaks-guard status
+```
+
+This displays a beautiful table showing:
+- Git repository status
+- Gitleaks installation and version
+- Configuration file status
+- Pre-commit hook status
+- Recommendations for improvement
+
+### Keeping Gitleaks Up-to-Date
+
+```bash
+# Check for and install updates
+gitleaks-guard update
+
+# Force reinstall
+gitleaks-guard update --force
 ```
 
 ### Scanning Repositories
@@ -217,6 +307,9 @@ gitleaks-guard disable
 
 # Re-enable protection
 gitleaks-guard enable
+
+# Check if it's enabled
+gitleaks-guard status
 ```
 
 ### Customization
@@ -269,13 +362,19 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Roadmap
 
 - [x] Windows support (✅ Completed in v0.1.0)
-- [ ] Interactive configuration wizard
-- [ ] Custom rule templates
+- [x] Interactive configuration wizard (✅ Completed in v0.2.0)
+- [x] Status dashboard (✅ Completed in v0.2.0)
+- [x] Auto-update functionality (✅ Completed in v0.2.0)
+- [x] Multiple configuration levels (✅ Completed in v0.2.0)
+- [x] Beautiful CLI with tables and colors (✅ Completed in v0.2.0)
+- [ ] JSON/YAML output format for scan results
 - [ ] Integration with CI/CD pipelines
 - [ ] Docker image
 - [ ] Homebrew formula
 - [ ] Chocolatey package (Windows)
 - [ ] Snap package (Linux)
+- [ ] Config file editor command
+- [ ] Scan history and reports
 
 ## License
 
