@@ -45,13 +45,15 @@ pub fn install_gitleaks(os: &str, arch: &str) -> Result<()> {
     let release: GithubRelease = response.json().context("Failed to parse release data")?;
 
     // Find the appropriate asset
-    let asset_name = format!("gitleaks_{}_{}", release.tag_name.trim_start_matches('v'), get_platform_string(os, arch));
+    let platform_str = get_platform_string(os, arch);
+    let version_str = release.tag_name.trim_start_matches('v');
+    let asset_pattern = format!("gitleaks_{}_{}", version_str, platform_str);
 
     let asset = release
         .assets
         .iter()
-        .find(|a| a.name.contains(&asset_name))
-        .context(format!("No asset found for {} {}", os, arch))?;
+        .find(|a| a.name.ends_with(&platform_str) && a.name.contains(&format!("gitleaks_{}", version_str)))
+        .context(format!("No asset found for {} {} (looking for pattern: {})", os, arch, asset_pattern))?;
 
     utils::print_info(&format!("Downloading gitleaks {}...", release.tag_name));
 
@@ -105,6 +107,11 @@ pub fn install_gitleaks(os: &str, arch: &str) -> Result<()> {
     let binary_name = "gitleaks";
 
     let binary_path = extract_path.join(binary_name);
+    
+    // Verify binary exists after extraction
+    if !binary_path.exists() {
+        anyhow::bail!("Binary not found after extraction: {}", binary_path.display());
+    }
 
     #[cfg(target_os = "linux")]
     let install_path = "/usr/local/bin/gitleaks";
@@ -134,10 +141,15 @@ pub fn install_gitleaks(os: &str, arch: &str) -> Result<()> {
         }
 
         // Make it executable
-        Command::new("sudo")
+        let chmod_output = Command::new("sudo")
             .args(["chmod", "+x", install_path])
             .output()
             .context("Failed to make gitleaks executable")?;
+        
+        if !chmod_output.status.success() {
+            let stderr = String::from_utf8_lossy(&chmod_output.stderr);
+            anyhow::bail!("Failed to make gitleaks executable: {}", stderr);
+        }
     }
 
     #[cfg(windows)]
