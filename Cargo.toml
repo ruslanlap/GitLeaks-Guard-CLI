@@ -1,0 +1,33 @@
+[package]
+name = "gitleaks-guard"
+version = "0.1.0"
+edition = "2021"
+authors = ["Ruslan"]
+description = "CLI tool for automated gitleaks installation and pre-commit hook setup"
+license = "MIT"
+repository = "https://github.com/ruslanlap/pre-commit-auto-script"
+
+[[bin]]
+name = "gitleaks-guard"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive", "cargo"] }
+colored = "2.1"
+anyhow = "1.0"
+tokio = { version = "1.40", features = ["full"] }
+reqwest = { version = "0.12", features = ["json", "blocking"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+indicatif = "0.17"
+dialoguer = "0.11"
+tar = "0.4"
+flate2 = "1.0"
+tempfile = "3.12"
+zip = "0.6"
+
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
+codegen-units = 1

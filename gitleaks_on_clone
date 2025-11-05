@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Define color codes (change these for your preference)
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BOLD='\033[1m'
+RESET='\033[0m'  # Reset color
+
+# Title with ASCII art and emoji
+echo -e "
+  ____   __   _  _  _ 
+ / ___\ / /  | || | || |
+|  _  |\ \  | || || || |
+| |_| | \_\ | || || || |
+ \____/  \___/|_||_||_|
+
+${BOLD}** GitLeaks Scanner **${RESET} 🕵️‍♂️🔍
+"
+
+# Prompt for repository URL with color and emoji
+echo -e "${BOLD}Enter the repository URL to scan: ${RESET}🔗"
+read REPO_URL
+
+# Define clone directory with a descriptive name
+CLONE_DIR="cloned_repos/$(basename "$REPO_URL")"
+
+# Check if existing directory needs cleaning
+if [ -d "$CLONE_DIR" ]; then
+  echo -e "${YELLOW}⚠️ Removing existing clone: $CLONE_DIR ...${RESET}"
+  rm -rf "$CLONE_DIR"
+fi
+
+# Clone repository with progress indicator and emoji
+echo -e "${BOLD}Cloning repository...${RESET} ⏳"
+git clone --progress "$REPO_URL" "$CLONE_DIR"
+
+# Check clone status with color-coded message and emoji
+if [ $? -ne 0 ]; then
+  echo -e "${RED}❌ ** ERROR: Failed to clone repository. Please check the URL and try again.${RESET}"
+  exit 1
+fi
+
+# Navigate to cloned directory
+cd "$CLONE_DIR" || exit
+
+# Run Gitleaks with informative message and emoji
+echo -e "${BOLD}** Running Gitleaks scan (this might take a while)...${RESET} 🕵️‍♂️🔍"
+gitleaks detect --source . --verbose
+
+# Check Gitleaks exit status
+if [ $? -eq 0 ]; then
+  echo -e "${GREEN}✅ ** Gitleaks scan completed successfully!${RESET}"
+else
+  echo -e "${YELLOW}⚠️ ** WARNING: Gitleaks scan may have found leaks. Please review the output.${RESET}"
+fi
+
+# Navigate back to the original directory before cleanup
+cd -
+
+# Optional cleanup with confirmation and emoji
+echo -e "${BOLD}🧹 Clean up temporary files? (y/N) ${RESET}"
+read -n 1 -r REPLY
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+  echo -e "${YELLOW}🗑️ Removing cloned repository...${RESET}"
+  rm -rf cloned_repos
+fi
+
+echo -e "${GREEN}** Task completed. **${RESET} 🎉"
+

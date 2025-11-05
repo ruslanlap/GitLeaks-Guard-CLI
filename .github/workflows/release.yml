@@ -1,0 +1,176 @@
+name: Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            artifact_name: gitleaks-guard
+            asset_name: gitleaks-guard-linux-x64
+            use_cross: false
+
+          - os: ubuntu-22.04
+            target: aarch64-unknown-linux-gnu
+            artifact_name: gitleaks-guard
+            asset_name: gitleaks-guard-linux-arm64
+            use_cross: false
+
+          # macOS
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: gitleaks-guard
+            asset_name: gitleaks-guard-macos-x64
+            use_cross: false
+
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: gitleaks-guard
+            asset_name: gitleaks-guard-macos-arm64
+            use_cross: false
+
+          # Windows
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: gitleaks-guard.exe
+            asset_name: gitleaks-guard-windows-x64.exe
+            use_cross: false
+
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            artifact_name: gitleaks-guard.exe
+            asset_name: gitleaks-guard-windows-arm64.exe
+            use_cross: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        if: ${{ !(runner.os == 'Linux' && matrix.target == 'aarch64-unknown-linux-gnu') }}
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install OpenSSL development packages (Linux x86_64)
+        if: runner.os == 'Linux' && matrix.target != 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libssl-dev
+
+      - name: Build Docker image (Linux aarch64)
+        if: runner.os == 'Linux' && matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          docker build -t pre-commit-auto-script:ci .
+
+      - name: Install OpenSSL development packages (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install openssl@3 pkg-config
+          echo "OPENSSL_DIR=$(brew --prefix openssl@3)" > $GITHUB_ENV
+
+      - name: Install cross
+        if: matrix.use_cross == true
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Build with cargo (native)
+        if: matrix.use_cross == false && !(runner.os == 'Linux' && matrix.target == 'aarch64-unknown-linux-gnu')
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Build with Docker (Linux aarch64)
+        if: runner.os == 'Linux' && matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}":/work \
+            -w /work \
+            pre-commit-auto-script:ci \
+            bash -c "set -e && \
+              dpkg --add-architecture arm64 && \
+              apt-get update && \
+              apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libssl-dev:arm64 && \
+              rustup target add aarch64-unknown-linux-gnu && \
+              export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc && \
+              export PKG_CONFIG_ALLOW_CROSS=1 && \
+              cargo build --release --target aarch64-unknown-linux-gnu"
+
+      - name: Build with cross
+        if: matrix.use_cross == true
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Strip binary (Linux)
+        if: ${{ runner.os == 'Linux' && matrix.use_cross == false && startsWith(matrix.target, 'x86_64') }}
+        run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+
+      - name: Strip binary (macOS)
+        if: runner.os == 'macOS'
+        run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+
+      - name: Prepare binary (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} ${{ matrix.asset_name }}
+          chmod +x ${{ matrix.asset_name }}
+
+      - name: Prepare binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Copy-Item "target/${{ matrix.target }}/release/${{ matrix.artifact_name }}" -Destination "${{ matrix.asset_name }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/gitleaks-guard-linux-x64/gitleaks-guard-linux-x64
+            artifacts/gitleaks-guard-linux-arm64/gitleaks-guard-linux-arm64
+            artifacts/gitleaks-guard-macos-x64/gitleaks-guard-macos-x64
+            artifacts/gitleaks-guard-macos-arm64/gitleaks-guard-macos-arm64
+            artifacts/gitleaks-guard-windows-x64.exe/gitleaks-guard-windows-x64.exe
+            artifacts/gitleaks-guard-windows-arm64.exe/gitleaks-guard-windows-arm64.exe
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
