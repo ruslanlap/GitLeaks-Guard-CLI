@@ -2,7 +2,7 @@
 name = "gitleaks-guard"
 version = "0.2.0"
 edition = "2021"
-authors = ["Ruslan"]
+authors = ["ruslanlap"]
 description = "Interactive CLI tool for automated gitleaks installation and pre-commit hook setup with beautiful UI"
 license = "MIT"
 repository = "https://github.com/ruslanlap/pre-commit-auto-script"
