@@ -220,6 +220,73 @@ pub fn create_config() -> Result<()> {
     Ok(())
 }
 
+/// Create strict gitleaks configuration
+pub fn create_strict_config() -> Result<()> {
+    utils::print_info("Creating strict .gitleaks.toml configuration...");
+
+    let strict_config = r#"title = "Gitleaks Strict Configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Strict mode - minimal allowlist"
+paths = [
+    '''go\.sum$''',
+    '''\.lock$''',
+]
+"#;
+
+    fs::write(".gitleaks.toml", strict_config).context("Failed to write config file")?;
+    utils::print_success("Strict configuration file created!");
+    Ok(())
+}
+
+/// Create minimal gitleaks configuration
+pub fn create_minimal_config() -> Result<()> {
+    utils::print_info("Creating minimal .gitleaks.toml configuration...");
+
+    let minimal_config = r#"title = "Gitleaks Minimal Configuration"
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key"
+regex = '''(?i)(api[_-]?key|apikey)['"\\s]*[:=]['"\\s]*[a-z0-9_\-]{20,}'''
+
+[[rules]]
+id = "aws-access-key"
+description = "AWS Access Key"
+regex = '''(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}'''
+
+[[rules]]
+id = "aws-secret-key"
+description = "AWS Secret Key"
+regex = '''(?i)aws(.{0,20})?(?-i)['\"][0-9a-zA-Z\/+]{40}['\"]'''
+
+[[rules]]
+id = "github-pat"
+description = "GitHub Personal Access Token"
+regex = '''ghp_[0-9a-zA-Z]{36}'''
+
+[[rules]]
+id = "generic-private-key"
+description = "Private Key"
+regex = '''-----BEGIN (RSA|EC|DSA|OPENSSH) PRIVATE KEY-----'''
+
+[allowlist]
+description = "Common false positives"
+paths = [
+    '''(.*?)(jpg|gif|doc|pdf|bin|svg|socket)$''',
+    '''(go|py|js)\.sum$''',
+    '''(yarn|package-lock|Cargo)\.lock$''',
+]
+"#;
+
+    fs::write(".gitleaks.toml", minimal_config).context("Failed to write config file")?;
+    utils::print_success("Minimal configuration file created!");
+    Ok(())
+}
+
 /// Run gitleaks detect on current directory
 pub fn detect(path: &str, config: Option<&str>) -> Result<()> {
     utils::print_info("Running gitleaks detect...");
