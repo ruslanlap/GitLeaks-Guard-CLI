@@ -1,0 +1,27 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Gitleaks
+gitleaks-report.json
+.gitleaks.toml
+
+# Temporary
+cloned_repos/
+*.tar.gz
+LICENSE
+
+# Build artifacts
+gitleaks
